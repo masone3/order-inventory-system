@@ -2,11 +2,20 @@
 target/
 !.mvn/wrapper/maven-wrapper.jar
 
+# Gradle (in case any module uses it later)
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
 # IntelliJ
 .idea/
 *.iml
 *.iws
+*.ipr
 out/
+
+# VS Code
+.vscode/
 
 # OS
 .DS_Store
@@ -16,3 +25,6 @@ out/
 
 # Env files
 .env
+
+# Spring Initializr boilerplate
+HELP.md
