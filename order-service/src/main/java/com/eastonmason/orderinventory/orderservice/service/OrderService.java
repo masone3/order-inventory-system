@@ -1,11 +1,16 @@
 package com.eastonmason.orderinventory.orderservice.service;
 
+import com.eastonmason.orderinventory.orderservice.client.ProductServiceClient;
 import com.eastonmason.orderinventory.orderservice.dto.OrderItemRequest;
 import com.eastonmason.orderinventory.orderservice.dto.OrderRequest;
 import com.eastonmason.orderinventory.orderservice.dto.OrderResponse;
+import com.eastonmason.orderinventory.orderservice.dto.ProductClientResponse;
+import com.eastonmason.orderinventory.orderservice.dto.StockReservationRequest;
 import com.eastonmason.orderinventory.orderservice.exception.OrderNotFoundException;
+import com.eastonmason.orderinventory.orderservice.exception.OrderRejectedException;
 import com.eastonmason.orderinventory.orderservice.model.Order;
 import com.eastonmason.orderinventory.orderservice.model.OrderItem;
+import com.eastonmason.orderinventory.orderservice.model.OrderStatus;
 import com.eastonmason.orderinventory.orderservice.repository.OrderRepository;
 import org.springframework.stereotype.Service;
 
@@ -15,9 +20,11 @@ import java.util.List;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final ProductServiceClient productServiceClient;
 
-    public OrderService(OrderRepository orderRepository) {
+    public OrderService(OrderRepository orderRepository, ProductServiceClient productServiceClient) {
         this.orderRepository = orderRepository;
+        this.productServiceClient = productServiceClient;
     }
 
     public List<OrderResponse> getAllOrders() {
@@ -36,26 +43,31 @@ public class OrderService {
     public OrderResponse createOrder(OrderRequest request) {
         Order order = new Order(request.customerName());
 
-        for (OrderItemRequest itemRequest : request.items()) {
-            ProductStub product = lookupProductStub(itemRequest.productId());
+        try {
+            for (OrderItemRequest itemRequest : request.items()) {
+                ProductClientResponse product = productServiceClient.reserveStock(
+                        itemRequest.productId(),
+                        new StockReservationRequest(itemRequest.quantity())
+                );
 
-            OrderItem item = new OrderItem(
-                    product.id(),
-                    product.name(),
-                    itemRequest.quantity(),
-                    product.price()
+                OrderItem item = new OrderItem(
+                        product.id(),
+                        product.name(),
+                        itemRequest.quantity(),
+                        product.price()
+                );
+                order.addItem(item);
+            }
+            order.setStatus(OrderStatus.CONFIRMED);
+        } catch (Exception e) {
+            order.setStatus(OrderStatus.REJECTED);
+            Order saved = orderRepository.save(order);
+            throw new OrderRejectedException(
+                    "Order rejected: unable to reserve stock — " + e.getMessage()
             );
-            order.addItem(item);
         }
 
         Order saved = orderRepository.save(order);
         return OrderResponse.from(saved);
     }
-
-    // TEMPORARY STUB — replaced on Day 5 with a real Feign call to product-service
-    private ProductStub lookupProductStub(Long productId) {
-        return new ProductStub(productId, "Stub Product #" + productId, 19.99);
-    }
-
-    private record ProductStub(Long id, String name, Double price) {}
 }
