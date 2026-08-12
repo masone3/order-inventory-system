@@ -1,6 +1,5 @@
 package com.eastonmason.orderinventory.orderservice.service;
 
-import com.eastonmason.orderinventory.orderservice.client.ProductServiceClient;
 import com.eastonmason.orderinventory.orderservice.dto.OrderItemRequest;
 import com.eastonmason.orderinventory.orderservice.dto.OrderRequest;
 import com.eastonmason.orderinventory.orderservice.dto.OrderResponse;
@@ -20,11 +19,11 @@ import java.util.List;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final ProductServiceClient productServiceClient;
+    private final ProductReservationService productReservationService;
 
-    public OrderService(OrderRepository orderRepository, ProductServiceClient productServiceClient) {
+    public OrderService(OrderRepository orderRepository, ProductReservationService productReservationService) {
         this.orderRepository = orderRepository;
-        this.productServiceClient = productServiceClient;
+        this.productReservationService = productReservationService;
     }
 
     public List<OrderResponse> getAllOrders() {
@@ -45,7 +44,7 @@ public class OrderService {
 
         try {
             for (OrderItemRequest itemRequest : request.items()) {
-                ProductClientResponse product = productServiceClient.reserveStock(
+                ProductClientResponse product = productReservationService.reserveStock(
                         itemRequest.productId(),
                         new StockReservationRequest(itemRequest.quantity())
                 );
@@ -61,7 +60,7 @@ public class OrderService {
             order.setStatus(OrderStatus.CONFIRMED);
         } catch (Exception e) {
             order.setStatus(OrderStatus.REJECTED);
-            Order saved = orderRepository.save(order);
+            orderRepository.save(order);
             throw new OrderRejectedException(
                     "Order rejected: unable to reserve stock — " + e.getMessage()
             );
