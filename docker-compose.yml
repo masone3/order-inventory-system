@@ -23,6 +23,12 @@ services:
     volumes:
       - order_db_data:/var/lib/postgresql/data
 
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+
 volumes:
   product_db_data:
   order_db_data:
