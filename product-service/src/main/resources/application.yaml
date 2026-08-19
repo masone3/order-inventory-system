@@ -5,7 +5,7 @@ spring:
   application:
     name: product-service
   datasource:
-    url: jdbc:postgresql://localhost:5433/product_db
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/product_db
     username: product_user
     password: product_pass
   jpa:
@@ -19,7 +19,7 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://${EUREKA_HOST:localhost}:8761/eureka/
     healthcheck:
       enabled: true
   instance:
@@ -38,4 +38,4 @@ management:
       probability: 1.0
     export:
       zipkin:
-        endpoint: http://localhost:9411/api/v2/spans
+        endpoint: http://${ZIPKIN_HOST:localhost}:9411/api/v2/spans
